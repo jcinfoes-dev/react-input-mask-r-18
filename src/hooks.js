@@ -1,204 +1,198 @@
-import { useCallback, useEffect, useLayoutEffect, useRef } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef } from 'react'
 
-import { defer, cancelDefer } from "./utils/defer";
-import {
-  setInputSelection,
-  getInputSelection,
-  isInputFocused
-} from "./utils/input";
-import { isDOMElement } from "./utils/helpers";
+import { defer, cancelDefer } from './utils/defer'
+import { setInputSelection, getInputSelection, isInputFocused } from './utils/input'
+import { isDOMElement } from './utils/helpers'
 
 export function useInputElement(inputRef) {
   return useCallback(() => {
-    let input = inputRef.current;
-    const isDOMNode = typeof window !== "undefined" && isDOMElement(input);
+    let input = inputRef.current
+    const isDOMNode = typeof window !== 'undefined' && isDOMElement(input)
 
     // workaround for react-test-renderer
     // https://github.com/sanniassin/react-input-mask/issues/147
     if (!input || !isDOMNode) {
-      return null;
+      return null
     }
 
-    if (input.nodeName !== "INPUT") {
-      input = input.querySelector("input");
+    if (input.nodeName !== 'INPUT') {
+      input = input.querySelector('input')
     }
 
     if (!input) {
-      throw new Error(
-        "react-input-mask: inputComponent doesn't contain input node"
-      );
+      throw new Error("react-input-mask: inputComponent doesn't contain input node")
     }
 
-    return input;
-  }, [inputRef]);
+    return input
+  }, [inputRef])
 }
 
 function useDeferLoop(callback) {
-  const deferIdRef = useRef(null);
+  const deferIdRef = useRef(null)
 
   const runLoop = useCallback(() => {
     // If there are simulated focus events, runLoop could be
     // called multiple times without blur or re-render
     if (deferIdRef.current !== null) {
-      return;
+      return
     }
 
     function loop() {
-      callback();
-      deferIdRef.current = defer(loop);
+      callback()
+      deferIdRef.current = defer(loop)
     }
 
-    loop();
-  }, [callback]);
+    loop()
+  }, [callback])
 
   const stopLoop = useCallback(() => {
-    cancelDefer(deferIdRef.current);
-    deferIdRef.current = null;
-  }, []);
+    cancelDefer(deferIdRef.current)
+    deferIdRef.current = null
+  }, [])
 
   useEffect(() => {
     if (deferIdRef.current) {
-      stopLoop();
-      runLoop();
+      stopLoop()
+      runLoop()
     }
-  }, [runLoop, stopLoop]);
+  }, [runLoop, stopLoop])
 
-  useEffect(cancelDefer, []);
+  useEffect(cancelDefer, [])
 
-  return [runLoop, stopLoop];
+  return [runLoop, stopLoop]
 }
 
 function useSelection(inputRef, isMasked) {
-  const selectionRef = useRef({ start: null, end: null });
-  const getInputElement = useInputElement(inputRef);
+  const selectionRef = useRef({ start: null, end: null })
+  const getInputElement = useInputElement(inputRef)
 
   const getSelection = useCallback(() => {
-    const input = getInputElement();
-    return getInputSelection(input);
-  }, [getInputElement]);
+    const input = getInputElement()
+    return getInputSelection(input)
+  }, [getInputElement])
 
   const getLastSelection = useCallback(() => {
-    return selectionRef.current;
-  }, []);
+    return selectionRef.current
+  }, [])
 
   const setSelection = useCallback(
-    selection => {
-      const input = getInputElement();
+    (selection) => {
+      const input = getInputElement()
 
       // Don't change selection on unfocused input
       // because Safari sets focus on selection change (#154)
       if (!input || !isInputFocused(input)) {
-        return;
+        return
       }
 
-      setInputSelection(input, selection.start, selection.end);
+      setInputSelection(input, selection.start, selection.end)
 
       // Use actual selection in case the requested one was out of range
-      selectionRef.current = getSelection();
+      selectionRef.current = getSelection()
     },
-    [getInputElement, getSelection]
-  );
+    [getInputElement, getSelection],
+  )
 
   const selectionLoop = useCallback(() => {
-    selectionRef.current = getSelection();
-  }, [getSelection]);
-  const [runSelectionLoop, stopSelectionLoop] = useDeferLoop(selectionLoop);
+    selectionRef.current = getSelection()
+  }, [getSelection])
+  const [runSelectionLoop, stopSelectionLoop] = useDeferLoop(selectionLoop)
 
   useLayoutEffect(() => {
     if (!isMasked) {
-      return;
+      return
     }
 
-    const input = getInputElement();
-    input.addEventListener("focus", runSelectionLoop);
-    input.addEventListener("blur", stopSelectionLoop);
+    const input = getInputElement()
+    input.addEventListener('focus', runSelectionLoop)
+    input.addEventListener('blur', stopSelectionLoop)
 
     if (isInputFocused(input)) {
-      runSelectionLoop();
+      runSelectionLoop()
     }
 
     return () => {
-      input.removeEventListener("focus", runSelectionLoop);
-      input.removeEventListener("blur", stopSelectionLoop);
+      input.removeEventListener('focus', runSelectionLoop)
+      input.removeEventListener('blur', stopSelectionLoop)
 
-      stopSelectionLoop();
-    };
-  });
+      stopSelectionLoop()
+    }
+  })
 
-  return { getSelection, getLastSelection, setSelection };
+  return { getSelection, getLastSelection, setSelection }
 }
 
 function useValue(inputRef, initialValue) {
-  const getInputElement = useInputElement(inputRef);
-  const valueRef = useRef(initialValue);
+  const getInputElement = useInputElement(inputRef)
+  const valueRef = useRef(initialValue)
 
   const getValue = useCallback(() => {
-    const input = getInputElement();
-    return input.value;
-  }, [getInputElement]);
+    const input = getInputElement()
+    return input.value
+  }, [getInputElement])
 
   const getLastValue = useCallback(() => {
-    return valueRef.current;
-  }, []);
+    return valueRef.current
+  }, [])
 
   const setValue = useCallback(
-    newValue => {
-      valueRef.current = newValue;
+    (newValue) => {
+      valueRef.current = newValue
 
-      const input = getInputElement();
+      const input = getInputElement()
       if (input) {
-        input.value = newValue;
+        input.value = newValue
       }
     },
-    [getInputElement]
-  );
+    [getInputElement],
+  )
 
   return {
     getValue,
     getLastValue,
-    setValue
-  };
+    setValue,
+  }
 }
 
 export function useInputState(initialValue, isMasked) {
-  const inputRef = useRef();
+  const inputRef = useRef()
   const { getSelection, getLastSelection, setSelection } = useSelection(
     inputRef,
-    isMasked
-  );
-  const { getValue, getLastValue, setValue } = useValue(inputRef, initialValue);
+    isMasked,
+  )
+  const { getValue, getLastValue, setValue } = useValue(inputRef, initialValue)
 
   function getLastInputState() {
     return {
       value: getLastValue(),
-      selection: getLastSelection()
-    };
+      selection: getLastSelection(),
+    }
   }
 
   function getInputState() {
     return {
       value: getValue(),
-      selection: getSelection()
-    };
+      selection: getSelection(),
+    }
   }
 
   function setInputState({ value, selection }) {
-    setValue(value);
-    setSelection(selection);
+    setValue(value)
+    setSelection(selection)
   }
 
   return {
     inputRef,
     getInputState,
     getLastInputState,
-    setInputState
-  };
+    setInputState,
+  }
 }
 
 export function usePrevious(value) {
-  const ref = useRef();
+  const ref = useRef()
   useEffect(() => {
-    ref.current = value;
-  });
-  return ref.current;
+    ref.current = value
+  })
+  return ref.current
 }

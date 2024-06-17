@@ -1,7 +1,7 @@
-import { defaultFormatChars } from "../constants";
+import { defaultFormatChars } from '../constants'
 
 export default function({ mask, maskPlaceholder }) {
-  const permanents = [];
+  const permanents = []
 
   if (!mask) {
     return {
@@ -9,66 +9,66 @@ export default function({ mask, maskPlaceholder }) {
       mask: null,
       prefix: null,
       lastEditablePosition: null,
-      permanents: []
-    };
+      permanents: [],
+    }
   }
 
-  if (typeof mask === "string") {
-    let isPermanent = false;
-    let parsedMaskString = "";
-    mask.split("").forEach(character => {
-      if (!isPermanent && character === "\\") {
-        isPermanent = true;
+  if (typeof mask === 'string') {
+    let isPermanent = false
+    let parsedMaskString = ''
+    mask.split('').forEach((character) => {
+      if (!isPermanent && character === '\\') {
+        isPermanent = true
       } else {
         if (isPermanent || !defaultFormatChars[character]) {
-          permanents.push(parsedMaskString.length);
+          permanents.push(parsedMaskString.length)
         }
-        parsedMaskString += character;
-        isPermanent = false;
+        parsedMaskString += character
+        isPermanent = false
       }
-    });
+    })
 
-    mask = parsedMaskString.split("").map((character, index) => {
+    mask = parsedMaskString.split('').map((character, index) => {
       if (permanents.indexOf(index) === -1) {
-        return defaultFormatChars[character];
+        return defaultFormatChars[character]
       }
-      return character;
-    });
+      return character
+    })
   } else {
     mask.forEach((character, index) => {
-      if (typeof character === "string") {
-        permanents.push(index);
+      if (typeof character === 'string') {
+        permanents.push(index)
       }
-    });
+    })
   }
 
   if (maskPlaceholder) {
     if (maskPlaceholder.length === 1) {
       maskPlaceholder = mask.map((character, index) => {
         if (permanents.indexOf(index) !== -1) {
-          return character;
+          return character
         }
-        return maskPlaceholder;
-      });
+        return maskPlaceholder
+      })
     } else {
-      maskPlaceholder = maskPlaceholder.split("");
+      maskPlaceholder = maskPlaceholder.split('')
     }
 
-    permanents.forEach(position => {
-      maskPlaceholder[position] = mask[position];
-    });
+    permanents.forEach((position) => {
+      maskPlaceholder[position] = mask[position]
+    })
 
-    maskPlaceholder = maskPlaceholder.join("");
+    maskPlaceholder = maskPlaceholder.join('')
   }
 
   const prefix = permanents
     .filter((position, index) => position === index)
-    .map(position => mask[position])
-    .join("");
+    .map((position) => mask[position])
+    .join('')
 
-  let lastEditablePosition = mask.length - 1;
+  let lastEditablePosition = mask.length - 1
   while (permanents.indexOf(lastEditablePosition) !== -1) {
-    lastEditablePosition--;
+    lastEditablePosition--
   }
 
   return {
@@ -76,6 +76,6 @@ export default function({ mask, maskPlaceholder }) {
     prefix,
     mask,
     lastEditablePosition,
-    permanents
-  };
+    permanents,
+  }
 }
